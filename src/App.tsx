@@ -1,21 +1,15 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { WarpFieldBackground } from './components/WarpFieldBackground/WarpFieldBackground'
 import { semanticHint, vocabularyWords, type VocabularyWord as Word } from './data/vocabulary'
 
 type View = 'home' | 'practice' | 'vocabulary'
 type PracticeMode = 'meaning' | 'usage' | 'dictation'
 type UsageQuestion = { stem: string; choices: string[]; answer: string; explanation: string; example: string; hint: string }
-type MusicTrack = { title: string; file: string }
 const words: Word[] = vocabularyWords
 const levels = ['A2', 'B1', 'B2', 'C1'] as const
 type Level = typeof levels[number]
 
 const dailySentence = 'Small steps every day lead to big changes.'
-const musicTracks: MusicTrack[] = [
-  { title: 'Let Go', file: '/music/let-go.mp3' },
-  { title: 'Golden House', file: '/music/golden-house.mp3' },
-  { title: 'Focus Piano', file: '/music/focus-piano.mp3' },
-]
 const usageQuestions: UsageQuestion[] = [
   { stem: 'Experts recommend ___ regularly.', choices: ['exercise', 'to exercise', 'exercising', 'exercised'], answer: 'exercising', explanation: 'recommend + V-ing: khi một động từ đi ngay sau “recommend”, dùng dạng -ing. Cũng có cấu trúc khác như “recommend that + clause”.', example: 'Experts recommend exercising regularly.', hint: 'Sau “recommend”, nếu đi thẳng vào một hành động, hãy nghĩ đến dạng -ing.' },
   { stem: 'She is interested ___ learning English.', choices: ['at', 'in', 'on', 'for'], answer: 'in', explanation: 'interested in + noun / V-ing: dùng “in” để nói quan tâm hoặc thích một việc/chủ đề.', example: 'She is interested in learning English.', hint: 'Cụm này dùng cùng giới từ trong “take an interest in”.' },
@@ -71,31 +65,11 @@ export default function App() {
   const [usageFeedback, setUsageFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle')
   const [usageAttemptRecorded, setUsageAttemptRecorded] = useState(false)
   const [showUsageAnswer, setShowUsageAnswer] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const [musicIndex, setMusicIndex] = useState(0)
-  const [musicPlaying, setMusicPlaying] = useState(false)
-  const [musicVolume, setMusicVolume] = useState(0.28)
-  const [musicError, setMusicError] = useState('')
 
   useEffect(() => localStorage.setItem('lingua-correct', String(correct)), [correct])
   useEffect(() => localStorage.setItem('lingua-attempts', String(attempts)), [attempts])
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    audio.volume = musicVolume
-  }, [musicVolume])
-  useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    audio.load()
-    setMusicError('')
-    if (musicPlaying) {
-      audio.play().catch(() => setMusicPlaying(false))
-    }
-  }, [musicIndex])
 
   const accuracy = attempts ? Math.round((correct / attempts) * 100) : 0
-  const currentTrack = musicTracks[musicIndex]
   const levelWords = useMemo(() => words.filter((word) => word.level === level), [level])
   const filteredWords = useMemo(() => levelWords.filter((word) => (
     `${word.english} ${word.vietnamese} ${word.collocation}`.toLowerCase().includes(search.toLowerCase().trim())
@@ -148,24 +122,6 @@ export default function App() {
     setAttemptRecorded(false)
     setShowAnswer(false)
     setShowHint(false)
-  }
-
-  function playNextMusic() {
-    setMusicIndex((value) => (value + 1) % musicTracks.length)
-  }
-
-  function toggleMusic() {
-    const audio = audioRef.current
-    if (!audio) return
-    setMusicError('')
-    if (musicPlaying) {
-      audio.pause()
-      setMusicPlaying(false)
-      return
-    }
-    audio.play()
-      .then(() => setMusicPlaying(true))
-      .catch(() => setMusicError('Chưa phát được. Kiểm tra file nhạc trong public/music.'))
   }
 
   function selectUsage(choice: string) {
@@ -277,16 +233,6 @@ export default function App() {
           <button className={view === 'practice' ? 'active' : ''} onClick={() => setView('practice')}>Luyện tập</button>
           <button className={view === 'vocabulary' ? 'active' : ''} onClick={() => setView('vocabulary')}>Từ vựng</button>
         </nav>
-        <div className="music-player" aria-label="Nhạc nền">
-          <audio ref={audioRef} src={currentTrack.file} onEnded={playNextMusic} onError={() => { if (musicPlaying) setMusicError('Thiếu file nhạc trong public/music.') }} />
-          <button className="music-toggle" type="button" onClick={toggleMusic} aria-label={musicPlaying ? 'Tạm dừng nhạc nền' : 'Phát nhạc nền'}>{musicPlaying ? '⏸' : '▶'}</button>
-          <select value={musicIndex} onChange={(event) => setMusicIndex(Number(event.target.value))} aria-label="Chọn nhạc nền">
-            {musicTracks.map((track, index) => <option key={track.file} value={index}>{track.title}</option>)}
-          </select>
-          <button className="music-next" type="button" onClick={playNextMusic} aria-label="Bài tiếp theo">↷</button>
-          <input type="range" min="0" max="1" step="0.05" value={musicVolume} onChange={(event) => setMusicVolume(Number(event.target.value))} aria-label="Âm lượng nhạc nền" />
-          {musicError && <span className="music-error">{musicError}</span>}
-        </div>
         <div className="profile"><span className="streak-mini">⚡ {streak} ngày</span><span className="avatar">NL</span></div>
       </header>
 
